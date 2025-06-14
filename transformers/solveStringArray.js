@@ -1,4 +1,5 @@
 import * as t from '@babel/types';
+import generate from '@babel/generator';
 
 let largeStringInfo = null;
 let decoderInfo = null;
@@ -12,8 +13,6 @@ function getNumericValue(node) {
   }
   return NaN; 
 }
-
-
 function correctlyShuffle(arr, ops) {
     const newArr = [...arr];
     for(const op of ops) {
@@ -106,7 +105,6 @@ export const solveStringArray = {
 
     ObjectProperty(path) {
       if (decoderInfo) return;
-
       const propValue = path.get('value');
       if (!propValue.isCallExpression()) return;
 
@@ -117,7 +115,6 @@ export const solveStringArray = {
       const xorKey = args[0].node.value;
       let separator = '';
       let isLikelyDecoder = false;
-      const foundOps = [];
 
       callee.traverse({
         BinaryExpression(p) { if (p.node.operator === '^') isLikelyDecoder = true; },
@@ -128,63 +125,33 @@ export const solveStringArray = {
             if(parent) separator = callArgs[1].node.value;
           }
         },
-
-        IfStatement(ifPath) {
-          const test = ifPath.get('test');
-          if (!test.isLogicalExpression({ operator: '&&' })) return;
-
-          const left = test.get('left');
-          const right = test.get('right');
-
-          if (!left.isBinaryExpression({ operator: '===' }) || !t.isNumericLiteral(left.node.right)) return;
-          if (!right.isBinaryExpression({ operator: '===' }) || !t.isNumericLiteral(right.node.right)) return;
-
-          const stateCheck = left.node.right.value < right.node.right.value ? left.node : right.node;
-          const order = stateCheck.right.value;
-
-          ifPath.get('consequent').traverse({
-            CallExpression(callPath) {
-              const parentCallArgs = callPath.get('arguments');
-              if (parentCallArgs.length !== 3) return;
-
-              const outerSplice = parentCallArgs[2];
-              if (!outerSplice.isCallExpression()) return;
-
-              const outerSpliceArgs = outerSplice.get('arguments');
-              const innerSplice = outerSpliceArgs[0];
-              if (!innerSplice.isCallExpression()) return;
-              
-              const innerSpliceArgs = innerSplice.get('arguments');
-
-              if (innerSpliceArgs.length === 3 && outerSpliceArgs.length === 3) {
-                const op = {
-                  s1_offset: getNumericValue(innerSpliceArgs[1].node),
-                  s1_length: getNumericValue(innerSpliceArgs[2].node),
-                  s2_offset: getNumericValue(outerSpliceArgs[1].node),
-                  s2_length: getNumericValue(outerSpliceArgs[2].node),
-                };
-
-                if (Object.values(op).every(v => !isNaN(v))) {
-                  foundOps.push({ order, op });
-                  callPath.stop();
-                }
-              }
-            }
-          });
-        }
       });
 
-      if (isLikelyDecoder && separator) {
-        foundOps.sort((a, b) => a.order - b.order);
-        const statefulShuffleOps = foundOps.map(item => item.op);
-        
+      if (!isLikelyDecoder || !separator) return;
+      const functionSource = generate.default(callee.node).code;
+      const regex = /(\-?\d+)\s*?,\s*?(\-?\d+)\)\s*?,\s*?(\-?\d+)\s*?,\s*?(\d+)/g; // hacked together hotfix, actually get this data properly later
+      const allMatches = [...functionSource.matchAll(regex)];
+      
+      const foundOps = [];
+      for (const match of allMatches) {
+        const op = {
+          s1_offset: parseInt(match[1], 10),
+          s1_length: parseInt(match[2], 10),
+          s2_offset: parseInt(match[3], 10),
+          s2_length: parseInt(match[4], 10),
+        };
+        foundOps.push(op);
+      }
+
+      if (foundOps.length > 0) {
         const propKey = path.get('key');
         const propName = propKey.isIdentifier() ? propKey.node.name : propKey.isStringLiteral() ? propKey.node.value : '[computed]';
         console.log(`[SOLVE-STR] Found decoder IIFE assigned to property: "${propName}"`);
+        
         decoderInfo = {
           xorKey,
           separator,
-          statefulShuffleOps,
+          statefulShuffleOps: foundOps,
           path: path,
         };
       }
