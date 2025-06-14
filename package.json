@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/Ciarands/e1-player-deobf#readme",
   "dependencies": {
-    "@babel/core": "^7.27.4"
+    "@babel/core": "^7.27.4",
+    "axios": "^1.10.0"
   }
 }
