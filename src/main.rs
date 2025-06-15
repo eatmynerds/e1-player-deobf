@@ -48,7 +48,7 @@ fn main() -> Result<(), KeyError> {
                 thread::sleep(Duration::from_secs(5));
                 info!("Comparing e1 scripts..");
                 if sha256::digest(script)
-                    == sha256::digest(
+                    != sha256::digest(
                         std::fs::read_to_string("./e1-cache/temp.js")
                             .map_err(|e| KeyError::FileError(Box::new(e)))?,
                     )
