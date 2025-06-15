@@ -1,0 +1,24 @@
+{
+  "type": "module",
+  "name": "e1-player-deobf",
+  "version": "1.0.0",
+  "description": "Deobfuscator for e1-player",
+  "main": "deobfuscate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ciarands/e1-player-deobf.git"
+  },
+  "author": "Ciarands",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ciarands/e1-player-deobf/issues"
+  },
+  "homepage": "https://github.com/Ciarands/e1-player-deobf#readme",
+  "dependencies": {
+    "@babel/core": "^7.27.4",
+    "axios": "^1.10.0"
+  }
+}

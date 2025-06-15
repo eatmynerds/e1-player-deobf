@@ -1,0 +1,11 @@
+[package]
+name = "key-checker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.27"
+reqwest = { version = "0.12.20", features = ["blocking"] }
+sha256 = "1.6.0"
+simple_logger = "5.0.0"
+subprocess = "0.2.9"
